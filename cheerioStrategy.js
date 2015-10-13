@@ -18,13 +18,18 @@ function cheerioStrategy( options ){
 	this.suffix = ".html";
 	this.src = "./bibile.html";
 	this.dest = "./ex_bible.html";
+	this.processed = "";
 
 	for(var prop in options){
 		if( this.hasOwnProperty(prop) ){
 			this[prop] = options[prop];
 		}
 	}
-	console.log( "cheerioStrategy constructor" + this );
+
+	// Note:
+	// $ of the property will be copied to child class
+	// propably, it has two instance
+	this.$ = cheerio.load( fs.readFileSync( this.src )); // second opinion
 }
 
 cheerioStrategy.prototype.sharedCode = function( cb ){
@@ -33,12 +38,12 @@ cheerioStrategy.prototype.sharedCode = function( cb ){
 	// after called this class
 	// it member will be add to this property
 	// it maybe move to parent constructor
-	this.$ = "cheerio.load( fs.readFileSync(\"" + this.src + "\"))";
+	
+	// this.$ = cheerio.load( fs.readFileSync( this.src )); // originai\l
 	var entities = new Entities();
 	var callback = cb || function(){};
 	var data = callback();
-	console.log( data );
-	console.log("entities.decode();");
+	return entities.decode( data );
 };
 
 cheerioStrategy.prototype.get = function(){
@@ -46,12 +51,13 @@ cheerioStrategy.prototype.get = function(){
 	this.sharedCode(function(){
 		console.log("sheerioStrategy callback");
 	});
-	this.write("cheerioStrategy.prototype.get");
+	this.write();
 };
 
-cheerioStrategy.prototype.write = function( chunk ){
+//cheerioStrategy.prototype.write = function( chunk ){
+cheerioStrategy.prototype.write = function(){
 	// to switch cosole.log and file stream 
-	chunk = chunk || "";
+	//chunk = chunk || "";
 	
 	var rstream = fs.createReadStream( this.src, {
 		flags: 'r',
@@ -75,8 +81,8 @@ cheerioStrategy.prototype.write = function( chunk ){
 	// wstream.write( chunk, [encoding], [callback]);
 	console.log( "within in output" );
 	console.log( this.dest );
-	console.log( "chunk: " + chunk );
-	wstream.write( chunk, 'utf8' );
+	console.log( "chunk: " + this.processed );
+	wstream.write( this.processed, 'utf8' );
 	
 };
 
@@ -92,13 +98,8 @@ var inherit = (function(){
 
 function cheerioBodyStrategy( options ){
 	this.name = "cheerioBodyStrategy";
-	console.log( "before:");
-	console.dir( this );
 	cheerioStrategy.apply(this, arguments);
 	//cheerioStrategy.call(this, options);
-	this.sharedCode();
-	console.log( "after:");
-	console.dir( this );
 }
 
 function cheerioStyleStrategy(){
@@ -120,25 +121,11 @@ inherit(cheerioImageStrategy, cheerioStrategy);
 
 cheerioBodyStrategy.prototype.get = function(){
 	var self = this;
-	this.sharedCode(function(){
-		console.log("cheeriosBodyStrategy's callback {");
-		console.log(here(/*
-	$('body').html();
-	Entities.decode();
-	Entities.apply.decode();
-	Entities.call.decode();
-		*/).valueOf());
-		console.log("}");
-		return "return value";
+	var $ = this.$;
+	this.processed = this.sharedCode(function(){
+		return $('body').html();
 	});
-	//console.log( this.prototype.uber );
-	var data = "processed data";
-	console.log( "cheerioBodyStrategy.prototype.get: " + data );
-	this.write( data );
-
-	console.log( "cheerioBodyStragety.get");
-	console.log( this.name );
-	console.log( this.$ );
+	return this.processed;
 };
 
 cheerioStyleStrategy.prototype.get = function(){
@@ -203,15 +190,14 @@ var imageStrategy = new cheerioImageStrategy({
 	dest: './bible.lst'
 });
 
-bodyStrategy.get();
+var data = bodyStrategy.get();
 //styleStrategy.get();
 //imageStrategy.get();
 
-console.dir( bodyStrategy );
+console.dir( data );
 //console.dir( styleStrategy );
 //console.dir( imageStrategy );
 
-bodyStrategy.write("bodyStrategy.write - global scope");
 bodyStrategy.write();
 //styleStrategy.write();
 //imageStrategy.write();
