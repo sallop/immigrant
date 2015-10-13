@@ -28,7 +28,7 @@ function cheerioStrategy( options ){
 
 	// Note:
 	// $ of the property will be copied to child class
-	// propably, it has two instance
+	// propably, this is duplicate instance
 	this.$ = cheerio.load( fs.readFileSync( this.src )); // second opinion
 }
 
@@ -49,16 +49,12 @@ cheerioStrategy.prototype.sharedCode = function( cb ){
 cheerioStrategy.prototype.get = function(){
 	var self = this;
 	this.sharedCode(function(){
-		console.log("sheerioStrategy callback");
+		return "sheerioStrategy callback";
 	});
 	this.write();
 };
 
-//cheerioStrategy.prototype.write = function( chunk ){
 cheerioStrategy.prototype.write = function(){
-	// to switch cosole.log and file stream 
-	//chunk = chunk || "";
-	
 	var rstream = fs.createReadStream( this.src, {
 		flags: 'r',
 		encoding: 'utf8',
@@ -79,11 +75,8 @@ cheerioStrategy.prototype.write = function(){
 	// String: The encoding, if chunk is a String
 	// callback: Function Optional callback for when the stream is finished
 	// wstream.write( chunk, [encoding], [callback]);
-	console.log( "within in output" );
-	console.log( this.dest );
-	console.log( "chunk: " + this.processed );
 	wstream.write( this.processed, 'utf8' );
-	
+	process.stdout.write( this.processed );
 };
 
 var inherit = (function(){
@@ -130,18 +123,11 @@ cheerioBodyStrategy.prototype.get = function(){
 
 cheerioStyleStrategy.prototype.get = function(){
 	var self = this;
-	this.sharedCode(function(){
-		here(/*
-			$('style').html()
-			Entities.call()
-		*/);
-		return "return value";
+	var $ = this.$;
+	this.processed = this.sharedCode(function(){
+		return $('style').html();
 	});
-	//console.log( this.prototype.uber );
-	console.log( "cheerioStyleStragety.get");
-	console.log( this.name );
-	console.log( this.$ );
-
+	return this.processed;
 };
 
 cheerioImageStrategy.prototype.get = function(){
@@ -191,14 +177,14 @@ var imageStrategy = new cheerioImageStrategy({
 });
 
 var data = bodyStrategy.get();
-//styleStrategy.get();
-//imageStrategy.get();
 
-console.dir( data );
+var data = styleStrategy.get();
+//var data = imageStrategy.get();
+
 //console.dir( styleStrategy );
 //console.dir( imageStrategy );
 
 bodyStrategy.write();
-//styleStrategy.write();
+styleStrategy.write();
 //imageStrategy.write();
 
