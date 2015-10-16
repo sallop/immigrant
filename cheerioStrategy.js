@@ -3,6 +3,8 @@
 var fs = require('fs'),
 	path = require('path');
 
+var assert = require('assert');
+
 var here = require("here").here,
 	cheerio = require('cheerio'),
 	Entities = require('html-entities').XmlEntities;
@@ -15,15 +17,23 @@ function cheerioStrategy( options ){
 	// but, it will be copied by .apply() or .call()
 	this.name = "cheerio";
 	this.prefix = "ex_";
-	this.suffix = ".html";
+	this.suffix = ".html"; // extension for output file
 	this.src = "./bibile.html";
-	this.dest = "./ex_bible.html";
+	this.dest = "";
+	this.odir = path.dirname( this.src );
 	this.processed = "";
 
 	for(var prop in options){
 		if( this.hasOwnProperty(prop) ){
 			this[prop] = options[prop];
 		}
+	}
+
+	if( this.dest == "" ){
+		//this.dest = this.odir + '/' + this.prefix + path.basename( this.src, this.suffix );
+		this.dest = this.odir + '/' + this.prefix + path.basename( this.src, path.extname(this.src) ) + this.suffix;
+		//assert(true, "this.dest = " + this.dest );
+		console.log("this.dest = " + this.dest );
 	}
 
 	// Note:
@@ -40,10 +50,12 @@ cheerioStrategy.prototype.sharedCode = function( cb ){
 	// it maybe move to parent constructor
 	
 	// this.$ = cheerio.load( fs.readFileSync( this.src )); // originai\l
-	var entities = new Entities();
+	
+	//var entities = new Entities();
 	var callback = cb || function(){};
 	var data = callback();
-	return entities.decode( data );
+	return data;
+	//return entities.decode( data );
 };
 
 cheerioStrategy.prototype.get = function(){
@@ -75,6 +87,7 @@ cheerioStrategy.prototype.write = function(){
 	// String: The encoding, if chunk is a String
 	// callback: Function Optional callback for when the stream is finished
 	// wstream.write( chunk, [encoding], [callback]);
+	//
 	wstream.write( this.processed, 'utf8' );
 	process.stdout.write( this.processed );
 };
@@ -132,19 +145,32 @@ cheerioStyleStrategy.prototype.get = function(){
 
 cheerioImageStrategy.prototype.get = function(){
 	var self = this;
-	this.sharedCode( function(){
-	console.log( here(/*
-$('img').each( function (){
-	for(var key in element){
-		console.log(key + "=" + element[key]);
-	}
-});
-	*/).valueOf());
-		return "return value";
+	var $ = this.$;
+	var data = this.sharedCode( function(){
+		var data = [];
+		$('*').each( function(){
+			if ($(this).is('img')){
+				data.push($(this).attr('src'));
+			} else {
+				backImg= $(this).css('background-image');
+				if ( backImg && backImg != 'none'){
+					data.push( backImg );
+				}
+			}
+		});
+		// from extract_img.js
+		// it doesn't work
+		//$('img').each( function ( i, element ){
+		//	for(var key in element){
+		//		//data[key] = element[key];
+		//		console.log(key + "=" + element[key]);
+		//	}
+		//});
+		//console.dir( data );
+		return data;
 	});
-	//console.log( this.prototype.uber );
-	console.log( this.name );
-	console.log( this.$ );
+	this.processed = data.join('\n') + "\n";
+	return data;
 };
 
 
@@ -173,18 +199,29 @@ var imageStrategy = new cheerioImageStrategy({
 	prefix: 'image_',
 	suffix: '.html',
 	src: './bible.html',
-	dest: './bible.lst'
+	//dest: './bible.lst'
 });
 
-var data = bodyStrategy.get();
-
-var data = styleStrategy.get();
-//var data = imageStrategy.get();
+//var data = bodyStrategy.get();
+//var data = styleStrategy.get();
+var data = imageStrategy.get();
 
 //console.dir( styleStrategy );
 //console.dir( imageStrategy );
 
-bodyStrategy.write();
-styleStrategy.write();
-//imageStrategy.write();
+//bodyStrategy.write();
+//styleStrategy.write();
+imageStrategy.write();
+
+console.log("\n");
+
+var imageStrategy2 = new cheerioImageStrategy({
+	name: 'imageStrategy',
+	prefix: 'image_',
+	suffix: '.html',
+	src: './profile.html',
+	//dest: './bible.lst'
+});
+data = imageStrategy2.get();
+imageStrategy2.write();
 
