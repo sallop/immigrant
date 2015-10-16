@@ -1,35 +1,25 @@
-var fs = require('fs'),
-	path = require('path');
+var tidies = require('./tidies.js');
 
-var source = process.argv[2] || './bible.html',
-	suffix = '.html',
-	odir = path.join(__dirname, './extracted_attachments') ||
-		path.join(__dirname, path.dirname( source )),
-	output = odir + '/' + path.basename( source );
+console.log( tidies );
+console.dir( tidies );
+console.log( tidies.Tidy );
+console.log( tidies.HtmlTidy );
+console.log( tidies.CssTidy );
 
-console.log( source );
-console.log( output );
-
-fs.appendFile( output, output, function(err) {
-	if (err) throw err;
-	console.log('The "data to append" was appended to file!');
+var tidy = new tidies.HtmlTidy({
+	prefix: "td_",
+	suffix: ".html",
+	src: "./bible.html",
 });
 
-//fs.open( output, "w+", function(err, fd){
-//	var buf = new Buffer( output );
-//	//var buf = "This is just a string object";
-//	//console.log( output );
-//	// fs.write(fd, data, position, encoding, callback)
-//	///fs.write(fd, buf, 0, buf.length, null, function(err, written, string){
-//	////fs.write(fd, buf, 0, buf.length, 'utf8', function(err, written, string){
-//	//	if (err) {
-//	//		throw err;
-//	//	}
-//	//	console.log(err, written, string);
-//	//	fs.close(fd, function(){
-//	//		console.log('Done');
-//	//	});
-//
-//	//});
-//});
+tidy.exec();
+
+tidy = new tidies.CssTidy({
+	prefix: "td_",
+	 suffix: ".css",
+	 src: "./bible.css",
+});
+
+tidy.exec();
+
 
